@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0E1912">
+<title>Stats Giocatori</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+  :root{
+    --bg:#0E1912;
+    --surface:#16241C;
+    --surface-2:#1D3025;
+    --line:#2A3F30;
+    --ink:#EEF3EC;
+    --muted:#8FA894;
+    --accent:#FFB020;
+    --accent-ink:#231400;
+    --danger:#E1573C;
+    --radius:14px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background: radial-gradient(circle at 50% -10%, #1B2C1F 0%, var(--bg) 55%);
+    color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    min-height:100vh;
+    padding-bottom:48px;
+    -webkit-font-smoothing:antialiased;
+  }
+  header{ padding:28px 20px 18px; border-bottom:1px solid var(--line); }
+  header .kicker{ font-size:13px; color:var(--accent); font-weight:600; letter-spacing:.02em; }
+  header h1{ margin:4px 0 0; font-size:28px; font-weight:800; letter-spacing:-0.01em; }
+  header p{ margin:6px 0 0; color:var(--muted); font-size:14px; line-height:1.4; }
+  main{ max-width:520px; margin:0 auto; padding:18px 16px 0; }
+  .card{ background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:18px; margin-bottom:16px; }
+  .card h2{ margin:0 0 4px; font-size:16px; font-weight:700; }
+  .card .sub{ margin:0 0 16px; color:var(--muted); font-size:13px; }
+  .grid2{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .grid3{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }
+  label{ display:block; font-size:12px; color:var(--muted); margin:12px 0 6px; }
+  label:first-child{margin-top:0;}
+  input, select{
+    width:100%; background:var(--surface-2); border:1px solid var(--line);
+    color:var(--ink); border-radius:10px; padding:11px 12px; font-size:15px;
+    font-variant-numeric:tabular-nums;
+  }
+  input:focus, select:focus{ outline:none; border-color:var(--accent); }
+  button{ font-family:inherit; cursor:pointer; border:none; }
+  .btn-primary{
+    width:100%; margin-top:18px; background:var(--accent); color:var(--accent-ink);
+    font-weight:700; font-size:15px; padding:13px; border-radius:10px;
+  }
+  .btn-primary:disabled{opacity:.5;}
+  .btn-ghost{ background:transparent; color:var(--muted); font-size:13px; padding:8px 0; text-decoration:underline; }
+  .status{ font-size:13px; margin-top:10px; min-height:18px; }
+  .status.ok{color:#7FCB94;}
+  .status.err{color:var(--danger);}
+  details summary{ cursor:pointer; color:var(--muted); font-size:13px; list-style:none; }
+  details summary::-webkit-details-marker{display:none;}
+  details[open] summary{margin-bottom:14px;}
+
+  .player-row{ padding:12px 0; border-bottom:1px solid var(--line); }
+  .player-row:last-child{border-bottom:none;}
+  .player-row .top{ display:flex; align-items:baseline; justify-content:space-between; gap:10px; }
+  .player-row .name{ font-weight:700; font-size:15px; }
+  .player-row .season{ font-size:12px; color:var(--muted); }
+  .player-row .fmv{ font-size:20px; font-weight:800; font-variant-numeric:tabular-nums; color:var(--accent); }
+  .chips{ display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+  .stat-chip{
+    font-size:11px; color:var(--muted); background:var(--surface-2);
+    border-radius:6px; padding:3px 7px;
+  }
+  .empty{ color:var(--muted); font-size:13px; text-align:center; padding:20px 0; }
+
+  .filter-row{ display:flex; gap:8px; margin-bottom:14px; }
+  .filter-row select{ flex:1; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="kicker">Archivio personale</div>
+  <h1>Stats Giocatori</h1>
+  <p>Registra le statistiche stagionali dei giocatori e tienile al sicuro su GitHub.</p>
+  <a href="dashboard.html" style="display:inline-block;margin-top:12px;color:var(--accent);font-size:13px;font-weight:600;text-decoration:none;">→ Vai alla Dashboard</a>
+</header>
+
+<main>
+
+  <div class="card">
+    <h2>Nuova stagione giocatore</h2>
+    <p class="sub">Compila i dati della stagione. I campi statistici sono opzionali.</p>
+
+    <form id="player-form">
+      <div class="grid2">
+        <div>
+          <label for="anno">Anno / Stagione</label>
+          <input type="text" id="anno" placeholder="es. 2025/26" required>
+        </div>
+        <div>
+          <label for="ruolo">Ruolo</label>
+          <select id="ruolo">
+            <option value="">—</option>
+            <option value="P">Portiere</option>
+            <option value="D">Difensore</option>
+            <option value="C">Centrocampista</option>
+            <option value="A">Attaccante</option>
+          </select>
+        </div>
+      </div>
+
+      <label for="nome">Nome giocatore</label>
+      <input type="text" id="nome" placeholder="Nome e cognome" required>
+
+      <div class="grid3">
+        <div>
+          <label for="partite">Partite a voto</label>
+          <input type="number" id="partite" min="0" inputmode="numeric">
+        </div>
+        <div>
+          <label for="gol">Gol</label>
+          <input type="number" id="gol" min="0" inputmode="numeric">
+        </div>
+        <div>
+          <label for="assist">Assist</label>
+          <input type="number" id="assist" min="0" inputmode="numeric">
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div>
+          <label for="mv">Media voto (mv)</label>
+          <input type="number" id="mv" step="0.01" min="0" inputmode="decimal">
+        </div>
+        <div>
+          <label for="fmv">Fantamedia (fmv)</label>
+          <input type="number" id="fmv" step="0.01" min="0" inputmode="decimal">
+        </div>
+      </div>
+
+      <details>
+        <summary>Altre statistiche</summary>
+        <div class="grid2">
+          <div>
+            <label for="rig-segnati">Rigori segnati</label>
+            <input type="number" id="rig-segnati" min="0" inputmode="numeric">
+          </div>
+          <div>
+            <label for="rig-sbagliati">Rigori sbagliati</label>
+            <input type="number" id="rig-sbagliati" min="0" inputmode="numeric">
+          </div>
+        </div>
+        <div class="grid2">
+          <div>
+            <label for="clean-sheet">Clean sheet</label>
+            <input type="number" id="clean-sheet" min="0" inputmode="numeric">
+          </div>
+          <div>
+            <label for="gol-subiti">Gol subiti</label>
+            <input type="number" id="gol-subiti" min="0" inputmode="numeric">
+          </div>
+        </div>
+        <label for="infortuni">Infortuni</label>
+        <input type="number" id="infortuni" min="0" inputmode="numeric" placeholder="numero di infortuni nella stagione">
+
+        <label for="note">Note</label>
+        <input type="text" id="note" placeholder="Osservazioni libere">
+      </details>
+
+      <button type="submit" class="btn-primary" id="save-btn">Salva giocatore</button>
+      <div id="save-status" class="status"></div>
+    </form>
+  </div>
+
+  <div class="card">
+    <h2>Archivio</h2>
+    <p class="sub" id="history-sub">Caricamento…</p>
+    <div class="filter-row">
+      <select id="filter-anno"><option value="">Tutte le stagioni</option></select>
+    </div>
+    <div id="history-list"></div>
+  </div>
+
+  <div class="card">
+    <h2>Connessione GitHub</h2>
+    <p class="sub">I dati vengono salvati come JSON nel tuo repository, così restano al sicuro anche se cambi dispositivo.</p>
+
+    <label for="gh-owner">Utente/organizzazione</label>
+    <input type="text" id="gh-owner" placeholder="es. gianluca">
+
+    <label for="gh-repo">Repository</label>
+    <input type="text" id="gh-repo" placeholder="es. stats-partite">
+
+    <label for="gh-path">Percorso file dati</label>
+    <input type="text" id="gh-path" value="data/giocatori.json">
+
+    <label for="gh-token">Token di accesso personale</label>
+    <input type="password" id="gh-token" placeholder="ghp_...">
+
+    <button type="button" class="btn-primary" id="gh-save-config" style="margin-top:14px;">Salva configurazione</button>
+    <div id="config-status" class="status"></div>
+    <button type="button" class="btn-ghost" id="gh-clear-token">Rimuovi token salvato</button>
+  </div>
+
+</main>
+
+<script>
+(function(){
+  "use strict";
+
+  const CONFIG_KEY = "sg_gh_config";
+  const CACHE_KEY = "sg_players_cache";
+
+  const el = (id) => document.getElementById(id);
+
+  function loadConfig(){
+    try{ return JSON.parse(localStorage.getItem(CONFIG_KEY)) || {}; }
+    catch(e){ return {}; }
+  }
+  function saveConfig(cfg){ localStorage.setItem(CONFIG_KEY, JSON.stringify(cfg)); }
+  function loadCache(){
+    try{ return JSON.parse(localStorage.getItem(CACHE_KEY)) || []; }
+    catch(e){ return []; }
+  }
+  function saveCache(players){ localStorage.setItem(CACHE_KEY, JSON.stringify(players)); }
+
+  function setStatus(elm, msg, kind){
+    elm.textContent = msg;
+    elm.className = "status" + (kind ? " " + kind : "");
+  }
+
+  // --- GitHub API ---------------------------------------------------
+
+  function ghHeaders(cfg){
+    return { "Authorization": "Bearer " + cfg.token, "Accept": "application/vnd.github+json" };
+  }
+  function ghUrl(cfg){
+    return `https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/${cfg.path}`;
+  }
+  function b64ToUtf8(b64){
+    const bin = atob(b64.replace(/\n/g, ""));
+    const bytes = new Uint8Array(bin.length);
+    for(let i=0;i<bin.length;i++) bytes[i] = bin.charCodeAt(i);
+    return new TextDecoder("utf-8").decode(bytes);
+  }
+  function utf8ToB64(str){
+    const bytes = new TextEncoder().encode(str);
+    let bin = "";
+    bytes.forEach(b => bin += String.fromCharCode(b));
+    return btoa(bin);
+  }
+
+  async function ghFetchPlayers(cfg){
+    const res = await fetch(ghUrl(cfg), { headers: ghHeaders(cfg) });
+    if(res.status === 404) return { players: [], sha: null };
+    if(!res.ok) throw new Error("Errore lettura (" + res.status + ")");
+    const data = await res.json();
+    const content = b64ToUtf8(data.content);
+    let players = [];
+    try{ players = JSON.parse(content); }catch(e){ players = []; }
+    return { players, sha: data.sha };
+  }
+
+  async function ghSavePlayers(cfg, players, sha){
+    const body = {
+      message: "Aggiorna statistiche giocatori",
+      content: utf8ToB64(JSON.stringify(players, null, 2))
+    };
+    if(sha) body.sha = sha;
+    const res = await fetch(ghUrl(cfg), {
+      method: "PUT",
+      headers: { ...ghHeaders(cfg), "Content-Type": "application/json" },
+      body: JSON.stringify(body)
+    });
+    if(!res.ok){
+      const errText = await res.text();
+      throw new Error("Errore salvataggio (" + res.status + "): " + errText.slice(0,200));
+    }
+    return res.json();
+  }
+
+  // --- Config UI -----------------------------------------------------
+
+  function fillConfigForm(cfg){
+    el("gh-owner").value = cfg.owner || "";
+    el("gh-repo").value = cfg.repo || "";
+    el("gh-path").value = cfg.path || "data/giocatori.json";
+    el("gh-token").value = cfg.token || "";
+  }
+  function readConfigForm(){
+    return {
+      owner: el("gh-owner").value.trim(),
+      repo: el("gh-repo").value.trim(),
+      path: el("gh-path").value.trim() || "data/giocatori.json",
+      token: el("gh-token").value.trim()
+    };
+  }
+  function configIsComplete(cfg){ return !!(cfg.owner && cfg.repo && cfg.path && cfg.token); }
+
+  el("gh-save-config").addEventListener("click", () => {
+    const cfg = readConfigForm();
+    saveConfig(cfg);
+    setStatus(el("config-status"), "Configurazione salvata su questo dispositivo.", "ok");
+    refreshHistory();
+  });
+
+  el("gh-clear-token").addEventListener("click", () => {
+    const cfg = loadConfig();
+    cfg.token = "";
+    saveConfig(cfg);
+    el("gh-token").value = "";
+    setStatus(el("config-status"), "Token rimosso.", "");
+  });
+
+  // --- Archivio ---------------------------------------------------------
+
+  function escapeHtml(s){
+    if(s == null) return "";
+    return String(s).replace(/[&<>"']/g, c => ({
+      "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+    }[c]));
+  }
+
+  function populateFilter(players){
+    const sel = el("filter-anno");
+    const current = sel.value;
+    const anni = [...new Set(players.map(p => p.anno).filter(Boolean))].sort().reverse();
+    sel.innerHTML = '<option value="">Tutte le stagioni</option>' +
+      anni.map(a => `<option value="${escapeHtml(a)}">${escapeHtml(a)}</option>`).join("");
+    if(anni.includes(current)) sel.value = current;
+  }
+
+  function renderHistory(players){
+    const filterAnno = el("filter-anno").value;
+    const filtered = filterAnno ? players.filter(p => p.anno === filterAnno) : players;
+
+    const list = el("history-list");
+    if(!filtered.length){
+      list.innerHTML = '<div class="empty">Nessun giocatore registrato ancora.</div>';
+      return;
+    }
+    const sorted = [...filtered].sort((a,b) => (b.anno||"").localeCompare(a.anno||"") || (b.fmv||0)-(a.fmv||0));
+    list.innerHTML = sorted.map(p => {
+      const chips = [];
+      if(p.partite != null) chips.push(`${p.partite} presenze`);
+      if(p.gol != null) chips.push(`${p.gol} gol`);
+      if(p.assist != null) chips.push(`${p.assist} assist`);
+      if(p.mv != null) chips.push(`mv ${p.mv}`);
+      if(p.rigSegnati != null || p.rigSbagliati != null) chips.push(`rig ${p.rigSegnati ?? 0}/${(p.rigSegnati ?? 0)+(p.rigSbagliati ?? 0)}`);
+      if(p.cleanSheet != null) chips.push(`${p.cleanSheet} clean sheet`);
+      if(p.golSubiti != null) chips.push(`${p.golSubiti} gol subiti`);
+      if(p.infortuni) chips.push(`${p.infortuni} infortuni`);
+      const chipsHtml = chips.length
+        ? `<div class="chips">${chips.map(c => `<span class="stat-chip">${c}</span>`).join("")}</div>`
+        : "";
+      return `
+        <div class="player-row">
+          <div class="top">
+            <div>
+              <div class="name">${escapeHtml(p.nome)}${p.ruolo ? " · " + escapeHtml(p.ruolo) : ""}</div>
+              <div class="season">${escapeHtml(p.anno)}</div>
+            </div>
+            <div class="fmv">${p.fmv != null ? p.fmv : "–"}</div>
+          </div>
+          ${chipsHtml}
+        </div>`;
+    }).join("");
+  }
+
+  async function refreshHistory(){
+    const cfg = loadConfig();
+    const sub = el("history-sub");
+    if(!configIsComplete(cfg)){
+      const cached = loadCache();
+      populateFilter(cached);
+      renderHistory(cached);
+      sub.textContent = "Configura GitHub qui sotto per sincronizzare i dati.";
+      return;
+    }
+    sub.textContent = "Caricamento da GitHub…";
+    try{
+      const { players } = await ghFetchPlayers(cfg);
+      saveCache(players);
+      populateFilter(players);
+      renderHistory(players);
+      sub.textContent = players.length + " stagioni giocatore salvate su GitHub.";
+    }catch(e){
+      const cached = loadCache();
+      populateFilter(cached);
+      renderHistory(cached);
+      sub.textContent = "Offline o errore di connessione — mostro l'ultima copia salvata.";
+    }
+  }
+
+  el("filter-anno").addEventListener("change", () => {
+    const cached = loadCache();
+    renderHistory(cached);
+  });
+
+  // --- Form nuovo giocatore ------------------------------------------------
+
+  el("player-form").addEventListener("submit", async (ev) => {
+    ev.preventDefault();
+    const saveBtn = el("save-btn");
+    const status = el("save-status");
+
+    const player = {
+      id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
+      anno: el("anno").value.trim(),
+      ruolo: el("ruolo").value || null,
+      nome: el("nome").value.trim(),
+      partite: numOrNull(el("partite").value),
+      gol: numOrNull(el("gol").value),
+      assist: numOrNull(el("assist").value),
+      mv: numOrNull(el("mv").value),
+      fmv: numOrNull(el("fmv").value),
+      rigSegnati: numOrNull(el("rig-segnati").value),
+      rigSbagliati: numOrNull(el("rig-sbagliati").value),
+      cleanSheet: numOrNull(el("clean-sheet").value),
+      golSubiti: numOrNull(el("gol-subiti").value),
+      infortuni: numOrNull(el("infortuni").value),
+      note: el("note").value.trim() || null
+    };
+
+    const cfg = loadConfig();
+    if(!configIsComplete(cfg)){
+      setStatus(status, "Configura prima la connessione GitHub qui sotto.", "err");
+      return;
+    }
+
+    saveBtn.disabled = true;
+    setStatus(status, "Salvataggio in corso…", "");
+
+    try{
+      const { players, sha } = await ghFetchPlayers(cfg);
+      players.push(player);
+      await ghSavePlayers(cfg, players, sha);
+      saveCache(players);
+      populateFilter(players);
+      renderHistory(players);
+      el("player-form").reset();
+      setStatus(status, "Giocatore salvato su GitHub.", "ok");
+    }catch(e){
+      setStatus(status, e.message || "Errore durante il salvataggio.", "err");
+    }finally{
+      saveBtn.disabled = false;
+    }
+  });
+
+  function numOrNull(v){
+    if(v === "" || v == null) return null;
+    const n = Number(v);
+    return Number.isFinite(n) ? n : null;
+  }
+
+  // --- Init ---------------------------------------------------------
+
+  fillConfigForm(loadConfig());
+  refreshHistory();
+
+  if("serviceWorker" in navigator){
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("sw.js").catch(() => {});
+    });
+  }
+})();
+</script>
+
+</body>
+</html>
